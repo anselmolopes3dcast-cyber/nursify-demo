@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nursify - Termos de Uso</title>
+    <!-- Carregamento do Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Ícones Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --primary-comp: #0077B6; /* Azul Corporativo */
+            --accent: #FFC300;  /* Amarelo */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+        }
+        .text-primary-comp { color: var(--primary-comp); }
+        .bg-primary-comp { background-color: var(--primary-comp); }
+        .card {
+            @apply bg-white p-6 md:p-10 rounded-xl shadow-lg border border-gray-100;
+        }
+        /* Estilos para legibilidade do texto legal */
+        .legal-content h2 {
+            @apply text-2xl font-bold mt-8 mb-4 text-gray-800 border-b pb-2;
+        }
+        .legal-content h3 {
+            @apply text-xl font-semibold mt-6 mb-3 text-primary-comp;
+        }
+        .legal-content p, .legal-content li {
+            @apply text-gray-700 mb-4 leading-relaxed;
+        }
+        .legal-content ol, .legal-content ul {
+            @apply list-decimal pl-5;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Modal para mensagens e confirmações -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden justify-center items-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800">Atenção</h3>
+            <p id="modal-message" class="mb-6 text-gray-700">Mensagem.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-confirm-btn" class="px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 hover:bg-gray-300 transition duration-150">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Barra de Navegação -->
+    <nav class="bg-primary-comp text-white p-4 shadow-xl sticky top-0 z-40">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Nursify <span class="text-accent">Termos de Uso</span></h1>
+            <!-- Botão de Sair/Home apenas para navegação -->
+            <button onclick="navigate('selecao_perfil.html')" class="bg-accent px-3 py-1 rounded-lg text-primary-comp font-bold hover:bg-yellow-400">Início</button>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-4 sm:p-6 flex-grow">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-extrabold text-gray-900 mb-2">Termos e Condições de Uso</h1>
+            <p class="text-lg text-gray-600">Última atualização: 28 de Setembro de 2025</p>
+        </header>
+
+        <!-- Conteúdo Legal -->
+        <div class="card legal-content">
+            <p>Bem-vindo(a) ao Nursify. Estes Termos de Uso regem o acesso e a utilização da plataforma, que conecta profissionais de saúde (Profissionais) a instituições de saúde (Empresas) para plantões (Vagas).</p>
+
+            <h2>1. Aceitação dos Termos</h2>
+            <p>Ao se cadastrar, acessar ou utilizar o Nursify, você concorda integralmente com estes Termos de Uso e com a nossa Política de Privacidade. Caso não concorde, não utilize a plataforma.</p>
+
+            <h2>2. Cadastro e Perfis de Usuário</h2>
+            <p>A plataforma oferece dois perfis de acesso, cada um com requisitos específicos de validação:</p>
+            <ul>
+                <li><strong>2.1 Profissional:</strong> Deve fornecer CPF, dados de contato e comprovar registro ativo no órgão regulador competente (ex: COREN, conforme a especialidade).</li>
+                <li><strong>2.2 Empresa:</strong> Deve fornecer CNPJ, dados do responsável legal e comprovar licenças e alvarás vigentes da unidade de saúde.</li>
+            </ul>
+
+            <h2>3. Termo de Não Vínculo Empregatício (Anti-Habitualidade)</h2>
+            <p class="font-bold text-red-700">O uso do Nursify é estritamente para a intermediação de serviços autônomos e intermitentes de plantões. Nenhuma disposição destes Termos ou de qualquer Contrato de Plantão gera ou deve ser interpretada como geradora de vínculo empregatício entre o Profissional e o Nursify, ou entre o Profissional e a Empresa tomadora do serviço (nos termos da CLT).</p>
+            <ul>
+                <li><strong>3.1 Regime de Prestação:</strong> O Profissional atua de forma autônoma, sem subordinação jurídica, pessoalidade ou habitualidade.</li>
+                <li><strong>3.2 Anti-Habitualidade:</strong> A plataforma implementa mecanismos de controle, como limitar a realização de plantões por um mesmo Profissional na mesma Empresa a <strong>dois (2) plantões por semana</strong>, visando evitar a descaracterização da autonomia.</li>
+                <li><strong>3.3 Responsabilidade Fiscal:</strong> O Profissional é o único responsável pelo recolhimento de impostos e contribuições devidos pela prestação do serviço (PJ, RPA, Autônomo).</li>
+            </ul>
+
+            <h2>4. Marketplace, Candidaturas e Contrato</h2>
+            <h3>4.1 Publicação e Candidatura</h3>
+            <p>As Empresas publicam plantões com detalhes (horário, valor, local simulado, especialidade). O Profissional pode se candidatar, respeitando o limite mensal do seu plano (se Free).</p>
+
+            <h3>4.2 Seleção e Contrato Legal</h3>
+            <p>Ao aceitar um candidato, a Empresa concorda que um Contrato de Plantão será gerado automaticamente. Este contrato incluirá, obrigatoriamente, as cláusulas de **Não Vínculo Empregatício** e o valor do piso proporcional da categoria aplicável ao plantão.</p>
+
+            <h2>5. Pagamento e Taxas</h2>
+            <p>O Nursify utiliza gateways de pagamento (Mercado Pago / Pagar.me simulados) para processar o valor do plantão. A remuneração do Profissional será repassada após a conclusão do plantão e a confirmação do Check-out.</p>
+            <ul>
+                <li><strong>5.1 Taxa de Serviço:</strong> Uma taxa de serviço (comissão) será deduzida do valor pago pela Empresa antes do repasse ao Profissional. O Profissional e a Empresa concordam com a tabela de taxas vigente.</li>
+                <li><strong>5.2 Cancelamento e No-Show:</strong> Políticas detalhadas de cancelamento serão aplicadas. Profissionais que faltarem a plantões (no-show) sem aviso prévio e justificativa podem ter sua conta suspensa ou multada.</li>
+                <li><strong>5.3 Planos Premium:</strong> A adesão aos planos Premium é cobrada mensalmente e não é reembolsável, salvo exceções previstas em lei.</li>
+            </ul>
+            
+            <h2>6. Check-in/Check-out e Execução do Plantão</h2>
+            <p>A comprovação da execução do plantão é obrigatória e feita por **Check-in/Check-out Digital** através de:</p>
+            <ul>
+                <li><strong>Geolocalização:</strong> Confirmação de que o Profissional está dentro de um raio de 200 metros do endereço da unidade de saúde.</li>
+                <li><strong>QR Code Único:</strong> Leitura de um código de validação fornecido pela Empresa.</li>
+            </ul>
+
+            <h2>7. Proteção de Dados (

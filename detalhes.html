@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nursify - Detalhes do Plantão</title>
+    <!-- Carregamento do Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Ícones Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0077B6; /* Azul Corporativo - Principal da Plataforma */
+            --secondary: #2C7A7B; /* Verde Profissional/Teal - Para o perfil Profissional */
+            --accent: #FFC300;  /* Amarelo CTA */
+            --soft-bg: #E0F2F1; /* Cor de fundo suave para o Dashboard */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--soft-bg); /* Fundo suave */
+        }
+        .text-primary { color: var(--primary); }
+        .bg-primary { background-color: var(--primary); }
+        .text-secondary { color: var(--secondary); }
+        .bg-secondary { background-color: var(--secondary); }
+
+        /* Botão de Candidatura (CTA) - Forte e Acentuado */
+        .btn-cta { 
+            background-color: var(--secondary); 
+            color: white; 
+            transition: all 0.3s; 
+            box-shadow: 0 4px 12px -3px rgba(44, 122, 123, 0.5); 
+            font-weight: 800;
+        }
+        .btn-cta:hover { 
+            background-color: #205E5F; 
+            box-shadow: 0 6px 15px -3px rgba(44, 122, 123, 0.7); 
+            transform: translateY(-1px);
+        }
+        .card {
+            @apply bg-white p-6 rounded-2xl shadow-xl border border-gray-100;
+        }
+        /* Estilo para a caixa de status no topo */
+        .status-box {
+            @apply p-3 rounded-xl font-bold text-sm text-center;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Modal para mensagens e confirmações -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden justify-center items-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800">Atenção</h3>
+            <p id="modal-message" class="mb-6 text-gray-700">Mensagem.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-confirm-btn" class="px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 hover:bg-gray-300 transition duration-150">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Barra de Navegação (Fixo no topo e responsivo) -->
+    <nav class="bg-primary text-white p-4 shadow-xl sticky top-0 z-40">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center">
+                <!-- Logotipo Simplificado (Manter a Coesão Visual) -->
+                <div class="h-6 w-6 mr-2">
+                    <svg width="100%" height="100%" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" class="nursify-logo">
+                        <rect x="156" y="213" width="200" height="85" fill="#5CB85C"/>
+                        <rect x="213" y="156" width="85" height="200" fill="#5CB85C"/>
+                        <path d="M400 256 C400 355.2 318.5 432 256 432 C193.5 432 112 355.2 112 256 C112 156.8 193.5 80 256 80 C318.5 80 400 156.8 400 256" stroke="#0077B6" stroke-width="30" fill="none" transform="rotate(180 256 256)"/>
+                    </svg>
+                </div>
+                Nursify
+            </h1>
+            <button onclick="navigate('marketplace.html')" class="bg-accent px-3 py-2 rounded-xl text-primary font-bold hover:bg-yellow-400 text-sm shadow-md">
+                <i class="fa-solid fa-store mr-1"></i> Marketplace
+            </button>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-4 sm:p-8 flex-grow">
+        <button onclick="navigate('marketplace.html')" class="text-secondary hover:text-primary font-semibold mb-6 text-base transition">
+            <i class="fa-solid fa-arrow-left mr-2"></i> Voltar ao Marketplace
+        </button>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Coluna Lateral (Empresa, Valor e CTA) - Fixo no Topo para Mobile -->
+            <div class="lg:col-span-1 space-y-6 order-last lg:order-first">
+
+                <!-- Valor e CTA (Bloco de Destaque) -->
+                <div class="card p-5 border-b-4 border-secondary">
+                    <div class="flex items-center justify-between mb-4">
+                        <p class="text-base font-medium text-gray-500">Valor Proposto (Total)</p>
+                        <span id="shift-value" class="text-4xl font-extrabold text-red-600">R$ 0,00</span>
+                    </div>
+
+                    <!-- Botão de Candidatura (CTA Fixo) -->
+                    <div class="md:relative md:p-0 md:mb-0">
+                        <button id="apply-button" onclick="applyForShift()" class="btn-cta w-full py-3 rounded-xl font-bold text-lg shadow-md">
+                            <i class="fa-solid fa-hand-pointer mr-2"></i> Candidatar-se a este Plantão
+                        </button>
+                        <p id="plan-status-info" class="text-xs text-center text-gray-600 mt-2">Plano: Free (0/5 candidaturas restantes)</p>
+                    </div>
+                </div>
+
+                <!-- Sobre a Instituição -->
+                <div class="card">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+                        <i class="fa-solid fa-building text-secondary mr-2"></i> Sobre a Instituição
+                    </h3>
+                    <div class="flex items-center mb-4">
+                        <img id="company-logo" src="https://placehold.co/64x64/0077B6/ffffff?text=Logo" onerror="this.onerror=null; this.src='https://placehold.co/64x64/0077B6/ffffff?text=Logo';" alt="Logo Empresa" class="w-16 h-16 rounded-full border-2 border-primary mr-4 shadow-md">
+                        <div>
+                            <p id="company-name" class="text-lg font-bold text-primary">Carregando Nome...</p>
+                            <p id="company-type" class="text-sm text-gray-500">Tipo de Instituição</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center text-base mb-3 p-2 bg-gray-50 rounded-lg">
+                        <i class="fa-solid fa-star text-yellow-500 mr-2 text-xl"></i>
+                        <span id="company-rating" class="font-bold text-gray-800">0.0</span> 
+                        <span class="text-gray-500 ml-2 text-sm">(0 Avaliações)</span>
+                    </div>
+
+                    <p class="text-sm text-gray-600">Tempo de Atuação: <span id="company-time" class="font-bold text-gray-800">0 anos</span></p>
+                </div>
+                
+                <div id="shift-status-info" class="card status-box bg-green-100 border-green-400 text-green-700">
+                    <p class="font-bold">Status: Plantão Aberto</p>
+                </div>
+            </div>
+
+
+            <!-- Coluna Principal (Descrição e Detalhes) -->
+            <div class="lg:col-span-2 space-y-6 order-first lg:order-last">
+                
+                <!-- Título e Especialidade -->
+                <div class="card p-5">
+                    <h2 id="shift-title" class="text-3xl font-extrabold text-gray-900 mb-1">Carregando Título...</h2>
+                    <p id="shift-specialty" class="text-xl font-semibold text-secondary">Especialidade</p>
+                </div>
+
+
+                <div class="card">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2 flex items-center">
+                        <i class="fa-solid fa-info-circle text-primary mr-2"></i> Informações Essenciais
+                    </h3>
+                    <!-- Layout Geométrico e Organizado -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5 text-base">
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-calendar-alt text-secondary mr-3"></i>
+                            <div>
+                                <span class="font-semibold text-gray-600">Data e Hora:</span> <br>
+                                <span id="shift-datetime" class="font-extrabold text-gray-900">--</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-user-tie text-secondary mr-3"></i>
+                            <div>
+                                <span class="font-semibold text-gray-600">Vínculo:</span> <br>
+                                <span id="shift-vinculo" class="font-extrabold text-gray-900">--</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-clock text-secondary mr-3"></i>
+                            <div>
+                                <span class="font-semibold text-gray-600">Duração/Turno:</span> <br>
+                                <span id="shift-duration" class="font-extrabold text-gray-900">--</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fa-solid fa-location-dot text-secondary mr-3"></i>
+                            <div>
+                                <span class="font-semibold text-gray-600">Cidade/Estado:</span> <br>
+                                <span id="shift-location" class="font-extrabold text-gray-900">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 border-b pb-2 flex items-center">
+                        <i class="fa-solid fa-file-alt text-primary mr-2"></i> Descrição do Plantão
+                    </h3>
+                    <p id="shift-description" class="text-gray-700 leading-relaxed min-h-[100px]"></p>
+                </div>
+
+                <!-- Aviso LGPD -->
+                <div class="card bg-yellow-50 border-yellow-300 border-l-4">
+                    <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                        <i class="fa-solid fa-user-shield mr-2 text-yellow-600"></i> Localização (LGPD)
+                    </h3>
+                    <p id="address-lgpd-warning" class="text-gray-700 font-medium">
+                        O **endereço completo** da unidade e os dados de contato serão revelados apenas após a sua candidatura ser **ACEITA** pela Empresa.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Script de Inicialização e Lógica -->
+    <script type="module">
+        // --- Importações do Firebase ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setLogLevel, addDoc, collection, query, where, getDocs, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Variáveis Globais de Ambiente ---
+        setLogLevel('debug');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'nursify-default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        // --- Variáveis Firebase e Estado do Usuário ---
+        let app, auth, db;
+        let userId = null;
+        let userRole = null;
+        let userProfile = null;
+        let currentShift = null;
+        const shiftId = new URLSearchParams(window.location.search).get('shiftId') || 'mock-shift-1'; // Usa mock ID se não houver na URL
+
+        // --- Constantes de Caminho ---
+        const PATHS = {
+            USERS_PUBLIC: (id) => `artifacts/${appId}/public/data/users/${id}`,
+            SHIFTS_DOC: (id) => `artifacts/${appId}/public/data/shifts/${id}`,
+            CANDIDACIES_COLLECTION: `artifacts/${appId}/public/data/candidacies`,
+        };
+
+        // --- UTILITY FUNCTIONS ---
+        
+        /** Exibe um modal customizado (substitui alert/confirm) */
+        const showModal = (title, message, isError = false) => {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').innerHTML = message;
+            
+            const titleElement = document.getElementById('modal-title');
+            titleElement.classList.toggle('text-red-500', isError);
+            titleElement.classList.toggle('text-gray-800', !isError);
+
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            confirmBtn.onclick = () => modal.classList.add('hidden', 'opacity-0');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex', 'opacity-100');
+        };
+
+        /** * Função de navegação segura para URLs relativas. */
+        window.navigate = function(page) {
+            const safeUrl = page.replace('./', '').trim();
+            if (safeUrl.endsWith('.html') || safeUrl.includes('selecao_perfil') || safeUrl.includes('perfil') || safeUrl.includes('configuracoes') || safeUrl.includes('contato') || safeUrl.includes('meus_plantoes') || safeUrl.includes('marketplace') || safeUrl.includes('candidaturas') || safeUrl.includes('financeiro') || safeUrl.includes('dashboard')) {
+                showModal("Navegação Indisponível", `A navegação para a página **${safeUrl}** não é suportada neste ambiente de arquivo único.`, true);
+                return; 
+            }
+            try {
+                window.location.href = safeUrl;
+            } catch (e) {
+                 console.error("Erro fatal de navegação:", e);
+                 showModal("Erro de Navegação", `Não foi possível carregar a página: ${safeUrl}. O ambiente pode estar bloqueando redirecionamentos.`, true);
+            }
+        };
+
+        /** Formata valor como Real Brasileiro */
+        const formatCurrency = (value) => {
+            const numericValue = parseFloat(value) || 0; 
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+            }).format(numericValue);
+        };
+        
+        // --- FIREBASE INITIALIZATION & DATA FETCHING ---
+
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey) {
+                    app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            await fetchUserProfileAndShift();
+                        } else {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        }
+                    });
+
+                } else {
+                    // Simulação em ambiente sem Firebase
+                    console.warn("Configuração do Firebase ausente/inválida. Simulando autenticação e DB.");
+                    userId = 'simulated-prof-user-123';
+                    userRole = 'Profissional';
+                    userProfile = { name: 'Mock User', role: 'Profissional', plan: 'Free', candidaciesUsed: 3 };
+                    await fetchUserProfileAndShift(); // Simula o fetch
+                }
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase/Auth:", error);
+                showModal("Erro de Conexão", "Falha ao conectar aos serviços.", true);
+            }
+        }
+
+        /** Busca Perfil do Usuário e Plantão, e verifica o role */
+        async function fetchUserProfileAndShift() {
+            if (!db) {
+                // Mock de Plantão
+                currentShift = { id: shiftId, title: 'Plantão de Enfermagem UTI', specialty: 'Enfermeiro(a) Pleno', value: 450.00, vinculo: 'PJ/RPA', duration: '12h (Noturno)', date: new Date().toISOString(), location: 'São Paulo/SP', description: 'Atuar em unidade de terapia intensiva, experiência mínima de 2 anos.', companyId: 'comp-mock-1', companyName: 'Hospital Mock S/A', companyType: 'Hospital Geral', companyRating: 4.8, companyTime: 5, status: 'Aberto' };
+                renderShiftDetails(currentShift);
+                checkUserRole();
+                checkCandidacyStatus(currentShift.id); // Simula status
+                return;
+            }
+
+            // 1. Fetch User Profile
+            const userDocRef = doc(db, PATHS.USERS_PUBLIC(userId));
+            try {
+                const userSnap = await getDoc(userDocRef);
+                
+                if (userSnap.exists()) {
+                    userProfile = userSnap.data();
+                    userRole = userProfile.role;
+                } else {
+                    // *** CORREÇÃO: Criar perfil padrão se não existir (resolve o erro e garante que userProfile é um objeto). ***
+                    console.warn("Perfil do utilizador não encontrado. Criando perfil padrão...");
+                    userProfile = { 
+                        name: 'Profissional Novo', 
+                        role: 'Profissional', 
+                        plan: 'Free', 
+                        candidaciesUsed: 0,
+                        createdAt: new Date().toISOString()
+                    };
+                    userRole = 'Profissional';
+
+                    // Persiste o perfil padrão para que na próxima vez ele já exista
+                    await setDoc(userDocRef, userProfile);
+                    console.log("Perfil padrão criado no Firestore.");
+                }
+                
+                checkUserRole();
+
+                // 2. Fetch Shift Details
+                const shiftDocRef = doc(db, PATHS.SHIFTS_DOC(shiftId));
+                const shiftSnap = await getDoc(shiftDocRef);
+                
+                if (shiftSnap.exists()) {
+                    currentShift = shiftSnap.data();
+                    renderShiftDetails(currentShift);
+                    // 3. Verifica Candidatura
+                    checkCandidacyStatus(currentShift.id);
+                } else {
+                    showModal("Plantão Não Encontrado", "O plantão que você está tentando acessar não existe mais.", true);
+                    setTimeout(() => navigate('marketplace.html'), 1500);
+                }
+
+            } catch (error) {
+                console.error("Erro ao buscar dados:", error);
+                showModal("Erro de Dados", "Não foi possível carregar os detalhes do plantão.", true);
+            }
+        }
+
+        /** Verifica se o usuário tem a role 'Profissional' e renderiza */
+        function checkUserRole() {
+            if (userRole !== 'Profissional') {
+                showModal("Permissão Negada", "Somente Profissionais podem se candidatar. Redirecionando.", true);
+                setTimeout(() => navigate('selecao_perfil.html'), 1500);
+            }
+            updatePlanStatusDisplay();
+        }
+
+        /** Verifica se o usuário já se candidatou a este plantão */
+        async function checkCandidacyStatus(shiftId) {
+            if (!userId) return; // Se for mock, a checagem é feita no fetchUserProfileAndShift
+
+            let candidacyFound = false;
+            let candidacyStatus = null;
+            
+            if (db) {
+                const candidaciesQuery = query(
+                    collection(db, PATHS.CANDIDACIES_COLLECTION),
+                    where('shiftId', '==', shiftId),
+                    where('professionalId', '==', userId)
+                );
+                const snapshot = await getDocs(candidaciesQuery);
+                if (!snapshot.empty) {
+                    candidacyFound = true;
+                    candidacyStatus = snapshot.docs[0].data().status;
+                }
+            } else {
+                // Mock de status de candidatura
+                if (shiftId === 'mock-shift-1') {
+                     candidacyStatus = 'Pendente'; // Simula que já se candidatou para o shift mock
+                     candidacyFound = true;
+                }
+            }
+
+            const statusBox = document.getElementById('shift-status-info');
+            
+            if (candidacyFound) {
+                if (candidacyStatus === 'Pendente') {
+                    disableApplyButton("<i class='fa-solid fa-hourglass-half mr-2'></i> Candidatura Enviada", 'Aguardando avaliação da empresa.', 'bg-yellow-500');
+                    statusBox.classList.remove('bg-green-100', 'border-green-400');
+                    statusBox.classList.add('bg-yellow-100', 'border-yellow-400', 'text-yellow-700');
+                    statusBox.querySelector('p').textContent = `Status: Candidatura Pendente`;
+
+                } else if (candidacyStatus === 'Aceito') {
+                    disableApplyButton("<i class='fa-solid fa-check-circle mr-2'></i> Parabéns! Você foi Aceito(a)", 'Vá para "Minha Agenda" para fazer o Check-in.', 'bg-green-600');
+                    // Simulação: se aceito, revela o endereço completo (LGPD)
+                    document.getElementById('address-lgpd-warning').innerHTML = `**Endereço Completo:** Rua Exemplo, 123 - Bairro Teste, 12345-678. Contato: (11) 98765-4321`;
+                    statusBox.classList.remove('bg-green-100', 'border-green-400');
+                    statusBox.classList.add('bg-green-200', 'border-green-600', 'text-green-800');
+                    statusBox.querySelector('p').textContent = `Status: Candidatura ACEITA!`;
+
+                } else if (candidacyStatus === 'Rejeitado') {
+                    disableApplyButton("<i class='fa-solid fa-times-circle mr-2'></i> Candidatura Rejeitada", 'A empresa selecionou outro profissional.', 'bg-red-600');
+                    statusBox.classList.remove('bg-green-100', 'border-green-400');
+                    statusBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                    statusBox.querySelector('p').textContent = `Status: Candidatura Rejeitada`;
+                }
+            }
+        }
+
+        /** Atualiza a exibição do status do plano */
+        function updatePlanStatusDisplay() {
+            const planName = userProfile?.plan || 'Free';
+            const used = userProfile?.candidaciesUsed || 0;
+            const limit = 5;
+            
+            if (planName === 'Free') {
+                document.getElementById('plan-status-info').textContent = `Plano: Free (${used} de ${limit} candidaturas restantes)`;
+            } else {
+                document.getElementById('plan-status-info').textContent = `Plano: Premium (Candidaturas Ilimitadas)`;
+            }
+        }
+
+        /** Desabilita o botão de candidatura */
+        function disableApplyButton(text, subtext, color) {
+            const btn = document.getElementById('apply-button');
+            btn.innerHTML = text;
+            btn.classList.remove('btn-cta');
+            btn.classList.add(color, 'cursor-not-allowed');
+            btn.onclick = null;
+            document.getElementById('plan-status-info').textContent = subtext;
+            document.getElementById('plan-status-info').classList.add('font-bold', 'text-sm');
+        }
+
+
+        /** Lógica principal de Candidatura */
+        window.applyForShift = async function() {
+            if (!currentShift || !userId || !userProfile) return;
+
+            const plan = userProfile.plan || 'Free';
+            const candidaciesUsed = userProfile.candidaciesUsed || 0;
+            const limit = 5;
+
+            // 1. Checagem de Limite Free
+            if (plan === 'Free' && candidaciesUsed >= limit) {
+                showModal("Limite Atingido", `Seu plano Free permite apenas ${limit} candidaturas por mês. Faça **Upgrade para Premium** ou aguarde o próximo ciclo.`, true);
+                return;
+            }
+
+            // 2. Checagem de Anti-Habitualidade (Simulação)
+            const antiHabitualidadeCount = Math.floor(Math.random() * 3); 
+            if (antiHabitualidadeCount >= 2) {
+                 showModal("Regra Anti-Habitualidade", "Não é possível se candidatar a este plantão. Você já atingiu o limite de 2 plantões por semana/mês nesta mesma instituição, conforme nossos Termos de Não Vínculo.", true);
+                 return;
+            }
+
+
+            // 3. Registro da Candidatura
+            try {
+                if (db) {
+                    await addDoc(collection(db, PATHS.CANDIDACIES_COLLECTION), {
+                        shiftId: currentShift.id,
+                        companyId: currentShift.companyId,
+                        professionalId: userId,
+                        professionalName: userProfile.name, 
+                        status: 'Pendente',
+                        createdAt: new Date().toISOString()
+                    });
+
+                    // 4. Atualiza Contador do Profissional (para usuários Free)
+                    if (plan === 'Free') {
+                        const newUsed = candidaciesUsed + 1;
+                        await setDoc(doc(db, PATHS.USERS_PUBLIC(userId)), { candidaciesUsed: newUsed }, { merge: true });
+                        userProfile.candidaciesUsed = newUsed;
+                    }
+                }
+                
+                showModal("Candidatura Enviada!", "Sua candidatura foi registrada com sucesso. Acompanhe o status em seu Dashboard.", false);
+                disableApplyButton("<i class='fa-solid fa-hourglass-half mr-2'></i> Candidatura Enviada", 'Aguardando avaliação da empresa.', 'bg-yellow-500');
+                updatePlanStatusDisplay();
+
+            } catch (error) {
+                console.error("Erro ao registrar candidatura:", error);
+                showModal("Erro no Servidor", "Não foi possível registrar sua candidatura. Tente novamente.", true);
+            }
+        }
+
+        /** Renderiza os detalhes do plantão e da empresa */
+        function renderShiftDetails(shift) {
+            document.getElementById('shift-title').textContent = shift.title || 'Plantão Indisponível';
+            document.getElementById('shift-specialty').textContent = shift.specialty || 'Especialidade Desconhecida';
+            document.getElementById('shift-value').textContent = formatCurrency(shift.value);
+            document.getElementById('shift-description').textContent = shift.description || 'Nenhuma descrição fornecida.';
+
+            // Formatação da Data (A data deve vir no formato ISO string)
+            let shiftDateText = '--';
+            try {
+                const dateObj = new Date(shift.date);
+                if (!isNaN(dateObj)) {
+                    shiftDateText = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                }
+            } catch (e) {
+                console.error("Erro ao formatar data:", e);
+            }
+
+            document.getElementById('shift-datetime').textContent = `${shiftDateText}`;
+            document.getElementById('shift-vinculo').textContent = shift.vinculo || 'PJ/RPA';
+            document.getElementById('shift-duration').textContent = shift.duration || 'Não informado';
+            document.getElementById('shift-location').textContent = `${shift.location}`; // Mantendo o location como string, pois city/state pode não vir separado
+
+            // Dados da Empresa (Mock)
+            document.getElementById('company-name').textContent = shift.companyName || 'Instituição de Saúde';
+            document.getElementById('company-type').textContent = shift.companyType || 'Hospital/Clínica';
+            document.getElementById('company-rating').textContent = (shift.companyRating || 5.0).toFixed(1);
+            document.getElementById('company-time').textContent = `${shift.companyTime || 3} anos`;
+
+            // Status (Apenas se o status não for "Aberto")
+            const statusBox = document.getElementById('shift-status-info');
+            if (shift.status !== 'Aberto') {
+                statusBox.classList.remove('bg-green-100', 'border-green-400', 'text-green-700');
+                statusBox.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                statusBox.querySelector('p').textContent = `Status: ${shift.status}`;
+                disableApplyButton(`<i class='fa-solid fa-ban mr-2'></i> Plantão ${shift.status}`, 'Este plantão não aceita mais candidaturas.', 'bg-gray-500');
+            }
+        }
+
+        // Inicializa o app ao carregar
+        initializeFirebase();
+    </script>
+</body>
+</html>

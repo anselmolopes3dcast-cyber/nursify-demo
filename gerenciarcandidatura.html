@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nursify - Gerenciar Candidaturas</title>
+    <!-- Carregamento do Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Ícones Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --primary-comp: #0077B6; /* Azul Corporativo */
+            --secondary-comp: #00B4D8; /* Azul claro */
+            --accent: #FFC300;  /* Amarelo */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+        }
+        .text-primary-comp { color: var(--primary-comp); }
+        .bg-primary-comp { background-color: var(--primary-comp); }
+        .btn-primary-comp { background-color: var(--primary-comp); color: white; transition: all 0.2s; }
+        .btn-primary-comp:hover { background-color: #005A8D; }
+        .card {
+            @apply bg-white p-5 rounded-xl shadow-lg border border-gray-100;
+        }
+        .candidate-card {
+            @apply card p-4 mb-3 border-l-4 border-gray-200 hover:border-primary-comp transition duration-300;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Modal para mensagens e confirmações -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden justify-center items-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800">Atenção</h3>
+            <p id="modal-message" class="mb-6 text-gray-700">Mensagem.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-confirm-btn" class="px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 hover:bg-gray-300 transition duration-150">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Barra de Navegação -->
+    <nav class="bg-primary-comp text-white p-4 shadow-xl sticky top-0 z-40">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Nursify <span class="text-accent">Empresa</span></h1>
+            <div id="nav-menu" class="hidden md:flex space-x-6 items-center">
+                <a href="#" onclick="navigate('dashboard_empresa.html')" class="hover:text-accent font-semibold">Dashboard</a>
+                <a href="#" onclick="navigate('publicar_plantao.html')" class="hover:text-accent font-semibold">Publicar</a>
+                <a href="#" onclick="navigate('perfil.html')" class="hover:text-accent font-semibold">Perfil</a>
+                <button onclick="logout()" class="bg-accent px-3 py-1 rounded-lg text-primary-comp font-bold hover:bg-yellow-400">Sair</button>
+            </div>
+            <button id="menu-toggle" class="md:hidden text-2xl" aria-label="Menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+        <!-- Menu Mobile Overlay -->
+        <div id="mobile-menu-content" class="md:hidden hidden mt-3 space-y-2">
+            <a href="#" onclick="navigate('dashboard_empresa.html')" class="block p-2 hover:bg-secondary-comp rounded-lg font-semibold">Dashboard</a>
+            <a href="#" onclick="navigate('publicar_plantao.html')" class="block p-2 hover:bg-secondary-comp rounded-lg font-semibold">Publicar</a>
+            <a href="#" onclick="navigate('perfil.html')" class="block p-2 hover:bg-secondary-comp rounded-lg font-semibold">Perfil</a>
+            <button onclick="logout()" class="w-full text-left bg-accent px-3 py-2 rounded-lg text-primary-comp font-bold hover:bg-yellow-400 mt-2">Sair</button>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-4 sm:p-6 flex-grow">
+        <button onclick="navigate('dashboard_empresa.html')" class="text-primary-comp hover:text-secondary-comp font-semibold mb-4 text-sm">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Voltar ao Dashboard
+        </button>
+
+        <header class="mb-8">
+            <h2 class="text-3xl font-extrabold text-gray-900 mb-2">Gerenciar Candidaturas</h2>
+            <p class="text-xl text-primary-comp font-semibold" id="shift-title">Plantão ID: Carregando...</p>
+            <p class="text-lg text-gray-600" id="shift-details">Local: - | Data: -</p>
+            <p id="shift-status" class="mt-2 text-sm font-bold text-red-500">Status: Aguardando Seleção</p>
+        </header>
+
+        <!-- Lista de Candidatos -->
+        <div class="card p-0">
+            <h3 class="text-xl font-bold text-gray-800 p-4 border-b">Candidatos (${candidatos.length})</h3>
+            <div id="candidates-list" class="divide-y divide-gray-100 min-h-[150px]">
+                <!-- Candidatos serão injetados aqui -->
+                <p id="loading-candidates" class="p-4 text-gray-500 text-center">Carregando candidatos...</p>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Footer Simples -->
+    <footer class="text-center p-4 text-sm text-gray-500 mt-8 border-t border-gray-200">
+        © 2025 Nursify. Todos os direitos reservados.
+    </footer>
+
+    <!-- Script de Inicialização e Lógica -->
+    <script type="module">
+        // --- Importações do Firebase ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setLogLevel, onSnapshot, collection, query, where, updateDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Variáveis Globais de Ambiente ---
+        setLogLevel('debug');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'nursify-default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        // --- Variáveis Firebase e Estado do Usuário ---
+        let app, auth, db;
+        let userId = null;
+        let userRole = null;
+        let shiftId = new URLSearchParams(window.location.search).get('shiftId');
+        let currentShift = null;
+        let candidatesData = [];
+        
+        // --- Constantes de Caminho ---
+        const PATHS = {
+            USERS_PUBLIC: (id) => `artifacts/${appId}/public/data/users/${id}`,
+            SHIFTS_DOC: (id) => `artifacts/${appId}/public/data/shifts/${id}`,
+            CANDIDACIES_COLLECTION: `artifacts/${appId}/public/data/candidacies`,
+        };
+
+        // --- UTILITY FUNCTIONS ---
+        
+        /** Exibe um modal customizado (substitui alert/confirm) */
+        const showModal = (title, message, isError = false) => {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').innerHTML = message;
+            
+            const titleElement = document.getElementById('modal-title');
+            titleElement.classList.toggle('text-red-500', isError);
+            titleElement.classList.toggle('text-gray-800', !isError);
+
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            confirmBtn.onclick = () => modal.classList.add('hidden', 'opacity-0');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex', 'opacity-100');
+        };
+
+        /** * Função de navegação segura para URLs relativas. */
+        window.navigate = function(page) {
+            const safeUrl = page.replace('./', '').trim();
+            try {
+                // Tentativa 1: Atribuição direta
+                window.location.href = safeUrl; 
+            } catch (e) {
+                 console.error("Erro fatal de navegação:", e);
+                 // Fallback para exibir erro no modal se todas as tentativas falharem
+                 showModal("Erro de Navegação", `Não foi possível carregar a página: ${safeUrl}. O ambiente pode estar bloqueando redirecionamentos.`, true);
+            }
+        };
+
+        window.logout = function() {
+            if (auth) {
+                signOut(auth).then(() => {
+                    showModal("Desconexão", "Sessão encerrada com sucesso.");
+                    navigate('selecao_perfil.html');
+                }).catch(error => {
+                    console.error("Erro ao fazer logout:", error);
+                    showModal("Erro ao Sair", "Não foi possível encerrar a sessão.", true);
+                });
+            } else {
+                 navigate('selecao_perfil.html');
+            }
+        }
+
+        /** Formata valor como Real Brasileiro */
+        const formatCurrency = (value) => {
+            const numericValue = parseFloat(value) || 0; 
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+            }).format(numericValue);
+        };
+        
+        /** Abre/Fecha o menu mobile */
+        document.getElementById('menu-toggle').addEventListener('click', () => {
+            const mobileMenu = document.getElementById('mobile-menu-content');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // --- FIREBASE INITIALIZATION & AUTH ---
+
+        async function initializeFirebase() {
+            if (!shiftId) {
+                 showModal("Plantão Ausente", "ID do Plantão não fornecido. Redirecionando para Dashboard.", true);
+                 return setTimeout(() => navigate('dashboard_empresa.html'), 1500);
+            }
+
+            try {
+                if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey) {
+                    app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            await fetchUserProfile();
+                        } else {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        }
+                    });
+
+                } else {
+                    // Simulação em ambiente sem Firebase
+                    console.warn("Simulando Auth e DB.");
+                    userId = 'simulated-comp-user-123';
+                    userRole = 'Empresa';
+                    checkUserRole();
+                    simulateShiftAndCandidates();
+                }
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase/Auth:", error);
+                showModal("Erro de Conexão", "Falha ao conectar aos serviços.", true);
+            }
+        }
+
+        /** Busca Perfil do Usuário e aplica o tema */
+        async function fetchUserProfile() {
+            if (!db || !userId) return;
+
+            const userDocRef = doc(db, PATHS.USERS_PUBLIC(userId));
+            try {
+                const userSnap = await getDoc(userDocRef);
+            
+                if (userSnap.exists()) {
+                    userRole = userSnap.data().role;
+                    checkUserRole();
+                    // Inicia listeners após confirmação de role
+                    setupFirestoreListeners(); 
+                } else {
+                    showModal("Acesso Negado", "Seu perfil não foi encontrado. Redirecionando para Seleção de Perfil.");
+                    setTimeout(() => navigate('selecao_perfil.html'), 1500); 
+                }
+            } catch (error) {
+                console.error("Erro ao buscar perfil:", error);
+                showModal("Erro de Perfil", "Não foi possível carregar seu perfil. Tente novamente.", true);
+                setTimeout(() => navigate('selecao_perfil.html'), 1500);
+            }
+        }
+
+        /** Verifica se o usuário tem a role 'Empresa' */
+        function checkUserRole() {
+            if (userRole !== 'Empresa') {
+                showModal("Permissão Negada", "Somente usuários com perfil de **Empresa** podem acessar esta página. Redirecionando.");
+                setTimeout(() => navigate('selecao_perfil.html'), 1500);
+            }
+        }
+
+        // --- FIREBASE LISTENERS E LÓGICA DE GERENCIAMENTO ---
+
+        function setupFirestoreListeners() {
+            if (!db) return;
+            
+            // 1. Ouvir o documento do Plantão
+            onSnapshot(doc(db, PATHS.SHIFTS_DOC(shiftId)), (docSnapshot) => {
+                if (docSnapshot.exists()) {
+                    currentShift = docSnapshot.data();
+                    renderShiftHeader(currentShift);
+                } else {
+                    showModal("Plantão Não Encontrado", `O plantão ID ${shiftId} não existe mais.`, true);
+                    setTimeout(() => navigate('dashboard_empresa.html'), 1500);
+                }
+            }, (error) => {
+                console.error("Erro ao ouvir plantão:", error);
+            });
+            
+            // 2. Ouvir as candidaturas para este Plantão
+            const candidaciesQuery = query(
+                collection(db, PATHS.CANDIDACIES_COLLECTION),
+                where("shiftId", "==", shiftId)
+            );
+
+            onSnapshot(candidaciesQuery, (snapshot) => {
+                candidatesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderCandidatesList(candidatesData);
+            }, (error) => {
+                console.error("Erro ao ouvir candidaturas:", error);
+                showModal("Erro", "Falha ao carregar lista de candidatos.", true);
+            });
+        }
+        
+        /** Renderiza o cabeçalho do plantão */
+        function renderShiftHeader(shift) {
+            document.getElementById('shift-title').textContent = shift.title || 'Plantão Desconhecido';
+            document.getElementById('shift-details').textContent = `Local: ${shift.city} - ${shift.state} | Data: ${new Date(shift.date).toLocaleDateString('pt-BR')} | Valor: ${formatCurrency(shift.value)}`;
+            
+            const statusElement = document.getElementById('shift-status');
+            statusElement.textContent = `Status: ${shift.status}`;
+            statusElement.className = 'mt-2 text-sm font-bold ' + (
+                shift.status === 'Aberto' ? 'text-green-500' :
+                shift.status === 'Fechado' ? 'text-red-500' :
+                'text-primary-comp'
+            );
+        }
+
+        /** Renderiza a lista de candidatos na UI */
+        function renderCandidatesList(candidates) {
+            const listContainer = document.getElementById('candidates-list');
+            listContainer.innerHTML = '';
+            
+            if (candidates.length === 0) {
+                listContainer.innerHTML = '<p class="p-4 text-gray-500 text-center">Nenhuma candidatura para este plantão ainda.</p>';
+                return;
+            }
+
+            // Garante que o status do plantão determina a ação
+            const isShiftOpen = currentShift && currentShift.status === 'Aberto';
+            const acceptedCandidateId = candidates.find(c => c.status === 'Aceito')?.id;
+
+            candidates.forEach(candidate => {
+                const isAccepted = candidate.status === 'Aceito';
+                const isPending = candidate.status === 'Pendente';
+                
+                const cardElement = document.createElement('div');
+                cardElement.className = `candidate-card ${isAccepted ? 'border-green-500' : isPending ? 'border-yellow-500' : 'border-red-500'}`;
+                
+                // Simulação de dados do perfil do profissional
+                const professionalName = candidate.professionalName || `Profissional ID ${candidate.professionalId.substring(0, 8)}...`;
+                const rating = (candidate.professionalRating || 5.0).toFixed(1);
+
+                let actionButtons = '';
+                if (isPending && isShiftOpen) {
+                    // Botões visíveis apenas para candidatos pendentes e se o plantão estiver aberto
+                    actionButtons = `
+                        <button onclick="acceptCandidate('${candidate.id}')" class="px-3 py-1 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition">
+                            <i class="fa-solid fa-check mr-1"></i> Aceitar
+                        </button>
+                        <button onclick="rejectCandidate('${candidate.id}')" class="px-3 py-1 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition">
+                            <i class="fa-solid fa-xmark mr-1"></i> Rejeitar
+                        </button>
+                    `;
+                } else if (isAccepted) {
+                    actionButtons = `
+                        <span class="text-green-600 font-bold"><i class="fa-solid fa-medal mr-1"></i> Selecionado(a)</span>
+                        <button onclick="navigate('chat.html?chatWith=${candidate.professionalId}')" class="px-3 py-1 bg-primary-comp text-white text-sm font-semibold rounded-lg hover:bg-secondary-comp transition">
+                            <i class="fa-solid fa-comment-dots mr-1"></i> Chat
+                        </button>
+                    `;
+                } else if (!isShiftOpen && !isAccepted) {
+                    actionButtons = '<span class="text-gray-500 text-sm">Plantão Fechado</span>';
+                }
+
+                cardElement.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div>
+                            <p class="text-lg font-bold text-gray-900">${professionalName}</p>
+                            <span

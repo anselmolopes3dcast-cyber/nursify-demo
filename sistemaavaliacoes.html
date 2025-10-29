@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação do Plantão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0077B6; /* Azul Corporativo */
+            --secondary: #2C7A7B; /* Verde Profissional/Teal */
+            --accent: #FFC300;  /* Amarelo CTA */
+            --soft-bg: #E0F2F1;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--soft-bg);
+        }
+        .text-primary { color: var(--primary); }
+        .bg-primary { background-color: var(--primary); }
+        .btn-primary { 
+            background-color: var(--primary); 
+            color: white; 
+            transition: all 0.3s; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+        }
+        .btn-primary:hover { 
+            background-color: #005A8D; 
+        }
+        /* Estilo para estrelas de avaliação */
+        .rating-star {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 md:p-8">
+
+    <!-- Modal para mensagens -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden justify-center items-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800">Atenção</h3>
+            <p id="modal-message" class="mb-6 text-gray-700">Mensagem.</p>
+            <div class="flex justify-end">
+                <button id="modal-confirm-btn" class="px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 hover:bg-gray-300 transition duration-150">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /** Funções de Utilidade (Navegação Segura e Modal) */
+        const showModal = (title, message, isError = false) => {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').innerHTML = message;
+            
+            const titleElement = document.getElementById('modal-title');
+            titleElement.classList.toggle('text-red-500', isError);
+            titleElement.classList.toggle('text-gray-800', !isError);
+
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            confirmBtn.onclick = () => modal.classList.add('hidden');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.navigate = function(page) {
+            const safeUrl = page.replace('./', '').trim();
+            if (safeUrl.endsWith('.html')) {
+                showModal("Navegação Indisponível", `A navegação para a página **${safeUrl}** não é suportada neste ambiente de arquivo único.`, true);
+                return; 
+            }
+        };
+
+        // Simulação de Dados
+        const MOCK_SHIFT = {
+            id: 'shift-789',
+            role: 'Profissional', // Quem está avaliando
+            target: 'Hospital São Lucas', // Quem está sendo avaliado
+            data: '15/10/2025',
+            statusAvaliacao: 'pendente' 
+        };
+
+        let selectedRating = 0;
+
+        function setRating(rating) {
+            selectedRating = rating;
+            const stars = document.querySelectorAll('.rating-star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.remove('text-gray-300');
+                    star.classList.add('text-accent');
+                } else {
+                    star.classList.remove('text-accent');
+                    star.classList.add('text-gray-300');
+                }
+            });
+            document.getElementById('rating-value').textContent = rating;
+        }
+
+        function handleRatingSubmit(e) {
+            e.preventDefault();
+            const comment = document.getElementById('comment').value;
+
+            if (selectedRating === 0) {
+                showModal("Erro", "Por favor, selecione uma nota de 1 a 5 estrelas.", true);
+                return;
+            }
+
+            const evaluationData = {
+                shiftId: MOCK_SHIFT.id,
+                evaluatorId: MOCK_SHIFT.role,
+                target: MOCK_SHIFT.target,
+                rating: selectedRating,
+                comment: comment,
+                timestamp: new Date().toISOString()
+            };
+
+            // Simulação de envio para Firestore
+            console.log("Avaliação Enviada (Simulação):", evaluationData);
+
+            showModal("Avaliação Concluída!", `Obrigado por avaliar **${MOCK_SHIFT.target}** com **${selectedRating} estrelas**!`, false);
+            
+            // Redirecionar (Simulado)
+            setTimeout(() => navigate('meus_plantoes.html'), 2000);
+        }
+
+        function initEvaluation() {
+            // Renderizar detalhes do plantão
+            document.getElementById('target-name').textContent = MOCK_SHIFT.target;
+            document.getElementById('shift-details').textContent = `Plantão concluído em ${MOCK_SHIFT.data} (ID: ${MOCK_SHIFT.id})`;
+
+            // Adicionar listeners para as estrelas
+            const starsContainer = document.getElementById('stars-container');
+            for (let i = 1; i <= 5; i++) {
+                const star = document.createElement('i');
+                star.className = 'fa-solid fa-star text-4xl rating-star text-gray-300 mx-1';
+                star.setAttribute('data-rating', i);
+                star.addEventListener('click', () => setRating(i));
+                star.addEventListener('mouseover', () => {
+                    document.querySelectorAll('.rating-star').forEach((s, index) => {
+                        if (index < i) {
+                            s.classList.add('text-accent');
+                            s.classList.remove('text-gray-300');
+                        }
+                    });
+                });
+                 star.addEventListener('mouseout', () => {
+                    setRating(selectedRating); // Volta para a classificação selecionada
+                });
+                starsContainer.appendChild(star);
+            }
+            
+            // Submissão do formulário
+            document.getElementById('evaluation-form').addEventListener('submit', handleRatingSubmit);
+        }
+
+        document.addEventListener('DOMContentLoaded', initEvaluation);
+    </script>
+
+    <!-- Cartão Principal de Avaliação -->
+    <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 md:p-10 text-center">
+        
+        <div class="flex justify-center items-center mb-6">
+            <i class="fa-solid fa-star text-accent text-5xl mr-3"></i>
+            <h1 class="text-3xl font-extrabold text-gray-900">Avalie o Plantão</h1>
+        </div>
+        
+        <p class="text-xl text-gray-700 font-semibold mb-2">Como foi sua experiência com:</p>
+        <h2 id="target-name" class="text-3xl font-black text-primary mb-2">Carregando...</h2>
+        <p id="shift-details" class="text-sm text-gray-500 mb-8"></p>
+
+        <form id="evaluation-form" class="space-y-6">
+            
+            <!-- Estrelas de Avaliação -->
+            <div class="mb-8">
+                <p class="text-lg font-bold text-gray-800 mb-4">Sua Nota: <span id="rating-value" class="text-primary text-2xl">0</span>/5</p>
+                <div id="stars-container" class="flex justify-center">
+                    <!-- Estrelas injetadas via JS -->
+                </div>
+            </div>
+
+            <!-- Campo de Comentário -->
+            <div>
+                <label for="comment" class="block text-left text-sm font-medium text-gray-700 mb-2">Comentário (Opcional)</label>
+                <textarea id="comment" rows="4" placeholder="Deixe um feedback construtivo sobre a experiência ou as instalações..." class="w-full p-3 border-2 border-gray-300 rounded-lg shadow-inner focus:ring-primary focus:border-primary transition duration-200"></textarea>
+            </div>
+
+            <!-- Botão de Ação -->
+            <button type="submit" class="btn-primary w-full py-3 rounded-xl font-bold text-lg transition duration-200">
+                <i class="fa-solid fa-paper-plane mr-2"></i> Enviar Avaliação
+            </button>
+            <button type="button" onclick="navigate('meus_plantoes.html')" class="w-full text-sm text-gray-500 hover:text-gray-700 mt-2">
+                Pular Avaliação
+            </button>
+        </form>
+    </div>
+</body>
+</html>

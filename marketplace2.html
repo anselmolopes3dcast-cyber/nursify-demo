@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nursify - Marketplace</title>
+    <!-- Carregamento do Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Ícones Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        :root {
+            --primary: #0077B6; /* Azul Corporativo */
+            --secondary: #2C7A7B; /* Verde Profissional/Teal */
+            --accent: #FFC300;  /* Amarelo CTA */
+            --soft-bg: #E0F2F1; /* Cor de fundo suave */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--soft-bg);
+        }
+        .text-primary { color: var(--primary); }
+        .bg-primary { background-color: var(--primary); }
+        .text-secondary { color: var(--secondary); }
+        .bg-secondary { background-color: var(--secondary); }
+
+        /* Botões Primários (Verde/Teal para Ação Profissional) */
+        .btn-primary-prof { 
+            background-color: var(--secondary); 
+            color: white; 
+            transition: all 0.3s; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+        }
+        .btn-primary-prof:hover { 
+            background-color: #205E5F; 
+            box-shadow: 0 6px 10px -1px rgba(0, 0, 0, 0.15); 
+        }
+        .card {
+            @apply bg-white p-6 rounded-2xl shadow-xl border border-gray-100;
+        }
+        /* Estilo do Cartão de Plantão Aprimorado */
+        .shift-card {
+            @apply bg-white p-4 rounded-xl shadow-lg border-l-4 border-secondary hover:shadow-2xl hover:border-primary transition duration-300 cursor-pointer;
+        }
+
+        /* Estilo para a tag Destaque */
+        .badge-premium {
+            @apply px-3 py-1 rounded-full text-xs font-bold bg-accent text-primary shadow-md;
+        }
+
+        /* Estilos para o painel de filtros em mobile */
+        @media (max-width: 767px) {
+            #filters-panel {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            #filters-panel.open {
+                transform: translateX(0);
+                /* Fixo e em tela cheia na vertical */
+                height: 100vh;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Modal para mensagens e confirmações -->
+    <div id="custom-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 hidden justify-center items-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800">Atenção</h3>
+            <p id="modal-message" class="mb-6 text-gray-700">Mensagem.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-confirm-btn" class="px-4 py-2 text-sm font-semibold rounded-lg bg-gray-200 hover:bg-gray-300 transition duration-150">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Barra de Navegação (Fixo no topo e responsivo) -->
+    <nav class="bg-primary text-white p-4 shadow-xl sticky top-0 z-40">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold flex items-center">
+                 <!-- Logotipo Simplificado (Manter a Coesão Visual) -->
+                <div class="h-6 w-6 mr-2">
+                    <svg width="100%" height="100%" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" class="nursify-logo">
+                        <rect x="156" y="213" width="200" height="85" fill="#5CB85C"/>
+                        <rect x="213" y="156" width="85" height="200" fill="#5CB85C"/>
+                        <path d="M400 256 C400 355.2 318.5 432 256 432 C193.5 432 112 355.2 112 256 C112 156.8 193.5 80 256 80 C318.5 80 400 156.8 400 256" stroke="#0077B6" stroke-width="30" fill="none" transform="rotate(180 256 256)"/>
+                    </svg>
+                </div>
+                Nursify <span class="text-accent ml-1">Marketplace</span>
+            </h1>
+            <div id="nav-menu" class="hidden md:flex space-x-6 items-center">
+                <a href="#" onclick="navigate('dashboard_profissional.html')" class="hover:text-accent font-semibold">Dashboard</a>
+                <a href="#" class="text-accent font-semibold border-b-2 border-accent pb-1">Marketplace</a>
+                <a href="#" onclick="navigate('meus_plantoes.html')" class="hover:text-accent font-semibold">Minha Agenda</a>
+                <button onclick="logout()" class="bg-accent px-4 py-2 rounded-xl text-primary font-bold hover:bg-yellow-400 text-sm shadow-md">
+                    <i class="fa-solid fa-sign-out-alt mr-1"></i> Sair
+                </button>
+            </div>
+            <button id="menu-toggle" class="md:hidden text-2xl" aria-label="Menu">
+                <i class="fa-solid fa-bars"></i>
+            </button>
+        </div>
+        <!-- Menu Mobile Overlay -->
+        <div id="mobile-menu-content" class="md:hidden hidden mt-3 space-y-2 bg-primary/90 p-3 rounded-lg">
+            <a href="#" onclick="navigate('dashboard_profissional.html')" class="block p-2 hover:bg-secondary rounded-lg font-semibold text-white">Dashboard</a>
+            <a href="#" class="block p-2 bg-secondary rounded-lg font-semibold text-white">Marketplace</a>
+            <a href="#" onclick="navigate('meus_plantoes.html')" class="block p-2 hover:bg-secondary rounded-lg font-semibold text-white">Minha Agenda</a>
+            <button onclick="logout()" class="w-full text-left bg-accent px-3 py-2 rounded-xl text-primary font-bold hover:bg-yellow-400 mt-2">Sair</button>
+        </div>
+    </nav>
+    
+    <main class="container mx-auto p-4 sm:p-6 flex-grow">
+        <header class="mb-6 bg-white p-6 rounded-2xl shadow-xl border-l-4 border-primary">
+            <h2 class="text-3xl font-extrabold text-gray-900 mb-2">Plantões Disponíveis</h2>
+            <p class="text-lg text-gray-600 font-semibold">Encontre sua próxima oportunidade com agilidade e segurança.</p>
+        </header>
+
+        <!-- Seção de Status do Plano -->
+        <div id="plan-status" class="card bg-blue-50 border-blue-300 border-l-4 p-4 mb-6 flex justify-between items-center flex-wrap shadow-md">
+            <p class="font-semibold text-blue-800 flex items-center">
+                <i class="fa-solid fa-receipt mr-3 text-2xl"></i> 
+                Seu Plano: <span id="plan-name" class="font-bold ml-2">Free</span> 
+                <span id="candidacy-limit" class="ml-3 text-sm"> (0 de 5 candidaturas usadas neste mês)</span>
+            </p>
+            <button onclick="simulatePremiumUpgrade()" class="bg-accent text-primary px-4 py-2 rounded-xl font-bold text-sm mt-3 md:mt-0 hover:bg-yellow-400 shadow-lg transition">
+                <i class="fa-solid fa-crown mr-2"></i> Upgrade Premium
+            </button>
+        </div>
+
+        <!-- Layout Principal: Filtros e Lista -->
+        <div class="flex flex-col md:flex-row gap-6">
+            
+            <!-- Painel de Filtros (Sidebar) -->
+            <div id="filters-panel" class="fixed inset-y-0 left-0 w-64 bg-white p-6 shadow-2xl z-30 md:relative md:w-1/4 md:shadow-lg md:translate-x-0 transition-transform duration-300 ease-in-out">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-extrabold text-gray-900">Filtros</h3>
+                    <button id="close-filters-btn" class="text-gray-500 md:hidden text-2xl hover:text-red-500"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                
+                <form id="filter-form" class="space-y-5">
+                    
+                    <div>
+                        <label for="search" class="block text-sm font-semibold text-gray-700 mb-1">Busca por Título/Empresa</label>
+                        <input type="text" id="search" placeholder="Enfermeiro UTI" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary transition">
+                    </div>
+
+                    <div>
+                        <label for="specialty-filter" class="block text-sm font-semibold text-gray-700 mb-1">Especialidade</label>
+                        <select id="specialty-filter" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary transition">
+                            <option value="">Todas</option>
+                            <option>Enfermeiro(a) Pleno</option>
+                            <option>Técnico(a) de Enfermagem</option>
+                            <option>Cuidador(a) de Idosos</option>
+                            <option>Técnico(a) de Raio X</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="location-filter" class="block text-sm font-semibold text-gray-700 mb-1">Cidade/Estado</label>
+                        <input type="text" id="location-filter" placeholder="Ex: São Paulo, SP" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary transition">
+                    </div>
+
+                    <div>
+                        <label for="value-min" class="block text-sm font-semibold text-gray-700 mb-1">Valor Mínimo (R$)</label>
+                        <input type="number" id="value-min" placeholder="R$ 250" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-secondary focus:border-secondary transition">
+                    </div>
+
+                    <div class="pt-4">
+                        <button type="submit" class="btn-primary-prof w-full py-3 rounded-xl font-bold shadow-lg">
+                            <i class="fa-solid fa-filter mr-2"></i> Aplicar Filtros
+                        </button>
+                        <button type="button" onclick="clearFilters()" class="w-full py-2 mt-3 text-sm font-semibold text-gray-600 hover:text-primary transition">
+                            Limpar Filtros
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Lista de Plantões -->
+            <div class="flex-1">
+                <!-- Botão de abrir filtro para mobile -->
+                <button id="open-filters-btn" class="md:hidden btn-primary-prof w-full py-3 rounded-xl mb-4 shadow-lg">
+                    <i class="fa-solid fa-sliders-h mr-2"></i> Mostrar Filtros
+                </button>
+
+                <div id="shifts-list" class="space-y-4">
+                    <!-- Plantões serão injetados aqui -->
+                    <p class="text-center text-gray-500 p-8 card">Carregando plantões...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Footer Simples -->
+    <footer class="text-center p-4 text-sm text-gray-500 mt-8 border-t border-gray-200 bg-white">
+        © 2025 Nursify. Todos os direitos reservados.
+    </footer>
+
+    <!-- Script de Inicialização e Lógica -->
+    <script type="module">
+        // --- Importações do Firebase ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setLogLevel, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Variáveis Globais de Ambiente ---
+        setLogLevel('debug');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'nursify-default-app-id';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        // --- Variáveis Firebase e Estado do Usuário ---
+        let app, auth, db;
+        let userId = null;
+        let userRole = null;
+        let userProfile = null;
+        
+        // --- Constantes de Caminho ---
+        const PATHS = {
+            USERS_PUBLIC: (id) => `artifacts/${appId}/public/data/users/${id}`,
+            SHIFTS_COLLECTION: `artifacts/${appId}/public/data/shifts`,
+            CANDIDACIES_COLLECTION: `artifacts/${appId}/public/data/candidacies`,
+        };
+
+        // --- UTILITY FUNCTIONS ---
+        
+        /** Exibe um modal customizado (substitui alert/confirm) */
+        const showModal = (title, message, isError = false) => {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').innerHTML = message;
+            
+            const titleElement = document.getElementById('modal-title');
+            titleElement.classList.toggle('text-red-500', isError);
+            titleElement.classList.toggle('text-gray-800', !isError);
+
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            confirmBtn.onclick = () => modal.classList.add('hidden', 'opacity-0');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex', 'opacity-100');
+        };
+
+        /** * Função de navegação segura para URLs relativas. */
+        window.navigate = function(page) {
+            const safeUrl = page.replace('./', '').trim();
+            if (safeUrl.endsWith('.html') || safeUrl.includes('selecao_perfil') || safeUrl.includes('perfil') || safeUrl.includes('configuracoes') || safeUrl.includes('contato') || safeUrl.includes('meus_plantoes') || safeUrl.includes('marketplace') || safeUrl.includes('candidaturas') || safeUrl.includes('financeiro') || safeUrl.includes('dashboard')) {
+                showModal("Navegação Indisponível", `A navegação para a página **${safeUrl}** não é suportada neste ambiente de arquivo único.`, true);
+                return; 
+            }
+             try {
+                window.location.href = safeUrl;
+            } catch (e) {
+                 console.error("Erro fatal de navegação:", e);
+                 showModal("Erro de Navegação", `Não foi possível carregar a página: ${safeUrl}. O ambiente pode estar bloqueando redirecionamentos.`, true);
+            }
+        };
+
+        window.logout = function() {
+            if (auth) {
+                signOut(auth).then(() => {
+                    showModal("Desconexão", "Sessão encerrada com sucesso.");
+                    navigate('selecao_perfil.html');
+                }).catch(error => {
+                    console.error("Erro ao fazer logout:", error);
+                    showModal("Erro ao Sair", "Não foi possível encerrar a sessão.", true);
+                });
+            } else {
+                 navigate('selecao_perfil.html');
+            }
+        }
+
+        /** Formata valor como Real Brasileiro */
+        const formatCurrency = (value) => {
+            const numericValue = parseFloat(value) || 0; 
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+            }).format(numericValue);
+        };
+
+        // --- LÓGICA DE FILTROS E MOBILE ---
+        document.getElementById('open-filters-btn').addEventListener('click', () => {
+            document.getElementById('filters-panel').classList.add('open');
+        });
+        document.getElementById('close-filters-btn').addEventListener('click', () => {
+            document.getElementById('filters-panel').classList.remove('open');
+        });
+        document.getElementById('menu-toggle').addEventListener('click', () => {
+            document.getElementById('mobile-menu-content').classList.toggle('hidden');
+        });
+
+        document.getElementById('filter-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            // Em um app real, você coletaria os valores e faria uma nova query ao Firestore
+            const search = document.getElementById('search').value;
+            const specialty = document.getElementById('specialty-filter').value;
+            const location = document.getElementById('location-filter').value;
+            const valueMin = document.getElementById('value-min').value;
+            
+            showModal("Filtros Aplicados", `Filtros aplicados (simulado):<br>Busca: **${search || 'Nenhuma'}**<br>Especialidade: **${specialty || 'Todas'}**`, false);
+            
+            // Fechar painel em mobile
+            document.getElementById('filters-panel').classList.remove('open');
+            simulateShiftListeners(); // Re-renderiza com mock para simular o refresh
+        });
+
+        window.clearFilters = function() {
+            document.getElementById('filter-form').reset();
+            simulateShiftListeners(); // Re-renderiza sem filtros (mock)
+        }
+
+        window.simulatePremiumUpgrade = function() {
+            showModal("Upgrade Premium", "Simulação de Checkout: Você seria redirecionado para o Mercado Pago. Funcionalidade Premium Ativada!", false);
+            
+            // Simulação de atualização imediata (para teste)
+            if (userProfile) {
+                 userProfile.plan = 'Premium';
+                 userProfile.candidaciesUsed = 0;
+            }
+            updatePlanStatusDisplay();
+        }
+
+        // --- FIREBASE INITIALIZATION & AUTH ---
+
+        async function initializeFirebase() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0 && firebaseConfig.apiKey) {
+                    app = initializeApp(firebaseConfig);
+                    auth = getAuth(app);
+                    db = getFirestore(app);
+
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            await fetchUserProfile();
+                        } else {
+                            if (initialAuthToken) {
+                                await signInWithCustomToken(auth, initialAuthToken);
+                            } else {
+                                await signInAnonymously(auth);
+                            }
+                        }
+                    });
+
+                } else {
+                    // Simulação em ambiente sem Firebase
+                    console.warn("Configuração do Firebase ausente/inválida. Simulando autenticação e DB.");
+                    userId = 'simulated-prof-user-123';
+                    userRole = 'Profissional';
+                    userProfile = { name: 'Mock User', role: 'Profissional', plan: 'Free', candidaciesUsed: 3 };
+                    checkUserRole();
+                    simulateShiftListeners();
+                }
+            } catch (error) {
+                console.error("Erro ao inicializar Firebase/Auth:", error);
+                showModal("Erro de Conexão", "Falha ao conectar aos serviços.", true);
+            }
+        }
+
+        /** Busca Perfil do Usuário (Profissional) */
+        async function fetchUserProfile() {
+            if (!db || !userId) return;
+
+            const userDocRef = doc(db, PATHS.USERS_PUBLIC(userId));
+            try {
+                const userSnap = await getDoc(userDocRef);
+            
+                if (userSnap.exists()) {
+                    userProfile = userSnap.data();
+                    userRole = userProfile.role;
+                    checkUserRole();
+                    // Inicia busca de candidaturas e plantões
+                    fetchShifts();
+                } else {
+                    showModal("Acesso Negado", "Seu perfil não foi encontrado. Redirecionando para Onboarding.", true);
+                    setTimeout(() => navigate('selecao_perfil.html'), 1500);
+                }
+            } catch (error) {
+                console.error("Erro ao buscar perfil:", error);
+                showModal("Erro de Perfil", "Não foi possível carregar seu perfil. Tente novamente.", true);
+                setTimeout(() => navigate('selecao_perfil.html'), 1500);
+            }
+        }
+
+        /** Verifica se o usuário tem a role 'Profissional' */
+        function checkUserRole() {
+            if (userRole !== 'Profissional') {
+                showModal("Permissão Negada", "Somente usuários com perfil de **Profissional** podem acessar esta página. Redirecionando.", true);
+                setTimeout(() => navigate('selecao_perfil.html'), 1500);
+            }
+             updatePlanStatusDisplay();
+        }
+        
+        /** Atualiza a exibição do status do plano */
+        function updatePlanStatusDisplay() {
+            if (!userProfile) return;
+
+            const planName = userProfile.plan || 'Free';
+            document.getElementById('plan-name').textContent = planName;
+            
+            const limit = 5;
+            
+            if (planName === 'Free') {
+                const used = userProfile.candidaciesUsed || 0;
+                document.getElementById('candidacy-limit').textContent = ` (${used} de ${limit} candidaturas usadas neste mês)`;
+                document.getElementById('plan-status').classList.remove('bg-green-100', 'border-green-400', 'text-green-800');
+                document.getElementById('plan-status').classList.add('bg-blue-50', 'border-blue-300', 'text-blue-800');
+            } else {
+                document.getElementById('candidacy-limit').textContent = ` (Candidaturas Ilimitadas e Destaque)`;
+                document.getElementById('plan-status').classList.remove('bg-blue-50', 'border-blue-300', 'text-blue-800');
+                document.getElementById('plan-status').classList.add('bg-green-50', 'border-green-400', 'text-green-800');
+            }
+        }
+
+
+        /** Busca todos os plantões disponíveis */
+        function fetchShifts() {
+            if (!db) return simulateShiftListeners();
+            
+            // Query: Apenas plantões 'Aberto'
+            const shiftsQuery = query(
+                collection(db, PATHS.SHIFTS_COLLECTION),
+                where("status", "==", "Aberto")
+            );
+
+            onSnapshot(shiftsQuery, (snapshot) => {
+                const shifts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderShiftsList(shifts);
+            }, (error) => {
+                console.error("Erro ao ouvir plantões:", error);
+                showModal("Erro de Conexão", "Falha ao carregar a lista de plantões.", true);
+                renderShiftsList([]);
+            });
+        }
+
+
+        /** Renderiza a lista de plantões na UI */
+        function renderShiftsList(shifts) {
+            const listContainer = document.getElementById('shifts-list');
+            listContainer.innerHTML = '';
+
+            if (shifts.length === 0) {
+                listContainer.innerHTML = '<p class="text-center text-gray-500 p-8 card">Nenhum plantão encontrado com os filtros aplicados.</p>';
+                return;
+            }
+
+            shifts.forEach(shift => {
+                const isPremium = shift.isPremium || false;
+                
+                const shiftElement = document.createElement('div');
+                shiftElement.className = 'shift-card';
+                // CORREÇÃO: Usar a função navigate() para ir para detalhes
+                shiftElement.setAttribute('onclick', `Maps('detalhes.html?shiftId=${shift.id}')`);
+                
+                shiftElement.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="text-xl font-extrabold text-gray-900">${shift.title}</h4>
+                        ${isPremium ? '<span class="badge-premium"><i class="fa-solid fa-star mr-1"></i> Destaque</span>' : ''}
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600 mb-2">
+                        <i class="fa-solid fa-hospital-user mr-2 text-secondary"></i>
+                        <span class="font-medium">${shift.companyName || 'Instituição de Saúde'}</span>
+                        <span class="ml-4 flex items-center text-yellow-500 font-bold">
+                            <i class="fa-solid fa-star mr-1 text-xs"></i> 
+                            ${(shift.companyRating || 4.5).toFixed(1)}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center pt-3 border-t border-gray-100 mt-3">
+                        <div>
+                            <p class="text-sm text-gray-500">Valor Proposto (Total)</p>
+                            <span class="text-lg font-extrabold text-red-600">${formatCurrency(shift.value)}</span>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-sm text-gray-500">${shift.city}, ${shift.state}</p>
+                            <span class="text-base font-bold text-gray-700">${new Date(shift.date).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                    </div>
+                `;
+                listContainer.appendChild(shiftElement);
+            });
+        }
+
+        /** --- SIMULAÇÃO DE DADOS (SE O FIREBASE NÃO ESTIVER DISPONÍVEL) --- */
+        function simulateShiftListeners() {
+            
+            const mockShifts = [
+                { id: 'mock-shift-1', title: 'Enfermeiro(a) UTI Noturno (12h)', specialty: 'Enfermeiro(a) Pleno', city: 'São Paulo', state: 'SP', value: 450.00, status: 'Aberto', date: new Date().toISOString(), companyName: 'Hospital São Lucas', isPremium: true, companyRating: 4.8 },
+                { id: 'mock-shift-2', title: 'Técnico(a) de Enfermagem - Diurno', specialty: 'Técnico(a) de Enfermagem', city: 'Campinas', state: 'SP', value: 300.00, status: 'Aberto', date: new Date().toISOString(), companyName: 'Clínica Bem Viver', isPremium: false, companyRating: 4.5 },
+                { id: 'mock-shift-3', title: 'Cuidador(a) de Idosos (Final de Semana)', specialty: 'Cuidador(a) de Idosos', city: 'Rio de Janeiro', state: 'RJ', value: 250.00, status: 'Aberto', date: new Date().toISOString(), companyName: 'ILPI Sol Nascente', isPremium: false, companyRating: 4.2 },
+                { id: 'mock-shift-4', title: 'Téc. de Raio X Urgente', specialty: 'Técnico(a) de Raio X', city: 'Belo Horizonte', state: 'MG', value: 380.00, status: 'Aberto', date: new Date().toISOString(), companyName: 'Clínica Radiológica Central', isPremium: true, companyRating: 4.9 },
+            ];
+
+            renderShiftsList(mockShifts);
+            updatePlanStatusDisplay();
+        }
+
+        // Inicializa o app ao carregar
+        initializeFirebase();
+    </script>
+</body>
+</html>
